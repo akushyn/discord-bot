@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 import config
+from utils import get_token_ratio
 
 
 def get_privileged_roles():
@@ -26,11 +27,11 @@ def get_max_token_ratio(nick):
 
 def is_privileged_nick(nick):
     """
-    Check whether member nick equal to one of privileged roles
+    Check whether member nick match to one of privileged roles with token ratio
     :param nick: Member nickname
     :return: Returns True if the nickname equal to privileged roles, False otherwise.
     """
-    if nick is not None and nick.lower() in get_privileged_roles():
+    if get_max_token_ratio(nick) >= config.MATCH_TOKEN_RATIO:
         return True
     return False
 
