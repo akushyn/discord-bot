@@ -52,7 +52,7 @@ async def on_member_update(before, after):
 
 @bot.event
 async def on_member_join(member):
-    if member.nick is not None and member.nick.lower() in get_privileged_roles():
+    if is_privileged_nick(member.nick):
         await member.kick(reason=config.MEMBER_JOIN_KICK_REASON)
 
 
