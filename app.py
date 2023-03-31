@@ -29,7 +29,7 @@ def is_privileged_nick(nick):
     """
     Check whether member nick match to one of privileged roles with token ratio
     :param nick: Member nickname
-    :return: Returns True if the nickname equal to privileged roles, False otherwise.
+    :return: Returns True if the nickname match to privileged roles, False otherwise.
     """
     if get_max_token_ratio(nick) >= config.MATCH_TOKEN_RATIO:
         return True
@@ -41,7 +41,7 @@ def check_nickname_change(before, after):
     Checks if a member's nickname has been changed to a privileged user.
     :param before: Member before
     :param after: Member after
-    :return: Returns True if the nickname has been changed, False otherwise.
+    :return: Returns True if the nickname has been changed to privileged role, False otherwise.
     """
     if before.nick != after.nick:
         if is_privileged_nick(after.nick):
