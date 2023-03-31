@@ -1,51 +1,45 @@
 import os
-from dotenv import load_dotenv
 import discord
 from discord.ext import commands
+from dotenv import load_dotenv
+
 
 load_dotenv()
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
+PRIVILEGED_USERS = os.getenv('PRIVILEGED_USERS')
+PRIVILEGED_USERS = PRIVILEGED_USERS.split(',')
+
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="-", intents=intents)
 
 
-client = discord.Client()
-
-
-async def check_nickname_change(member):
-    privileged_roles = ["Admin", "Moderator"] # Change this to the roles you want to check for
-    for role in member.roles:
-        if role.name in privileged_roles and member.nick is not None and role.name not in member.nick:
-            await member.kick(reason="Changed nickname to privileged user")
-            break
-
-
-@client.event
-async def on_member_update(before, after):
+def check_nickname_change(before, after):
+    """
+    Checks if a member's nickname has been changed to a privileged user.
+    Returns True if the nickname has been changed, False otherwise.
+    """
     if before.nick != after.nick:
-        await check_nickname_change(after)
+        if after.nick is not None and after.nick.lower() in PRIVILEGED_USERS:
+            return True
+    return False
 
 
-@client.event
-async def on_member_join(member):
-    await check_nickname_change(member)
-
-
-client.run("TOKEN")
 @bot.event
 async def on_ready():
-    print(f'{bot.user} has connected to Discord!')
+    print(f"Logged in as {bot.user}")
 
 
 @bot.event
-async def on_message(message):
-    if message.author == bot.user:
-        return
+async def on_member_update(before, after):
+    if check_nickname_change(before, after):
+        await after.kick(reason="Nickname changed to a privileged user")
 
-    if message.content.startswith('!hello'):
-        await message.channel.send('My Name is akushyn!!!')
+
+@bot.event
+async def on_member_join(member):
+    if member.nick is not None and member.nick.lower() in PRIVILEGED_USERS:
+        await member.kick(reason="Nickname set to a privileged user on join")
 
 
 bot.run(DISCORD_TOKEN)
-print('success')
