@@ -15,6 +15,15 @@ intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="-", intents=intents)
 
 
+def get_max_token_ratio(nick):
+    """
+    Calculate max token ratio between nickname and roles
+    :param nick: Member nickname
+    :return: Max token ratio
+    """
+    return max([get_token_ratio(nick.lower(), role.lower()) for role in get_privileged_roles()])
+
+
 def is_privileged_nick(nick):
     """
     Check whether member nick equal to one of privileged roles
