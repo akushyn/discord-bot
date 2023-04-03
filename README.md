@@ -25,12 +25,12 @@ Create `.env` file from `env.example`
 cp env.example .env
 ```
 
-### Run the discord bot
-
-Ensure you python script is running. 
+Run the application 
 ```
 python3 app.py
 ```
+
+### Run the discord bot
 
 #### How to install discord bot:
 
