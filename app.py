@@ -1,10 +1,9 @@
 import discord
-from discord.ext import commands
 import config
-from utils import get_token_ratio
+from logger import logger
 
 
-def get_privileged_roles():
+def parse_privileged_roles():
     """
     Get parsed privileged roles
     :return: List of privileged roles
@@ -12,58 +11,57 @@ def get_privileged_roles():
     return [u.strip() for u in config.PRIVILEGED_USER_ROLES.split(',')]
 
 
-intents = discord.Intents.all()
-bot = commands.Bot(command_prefix="-", intents=intents)
+intents = discord.Intents.default()
+intents.members = True
+
+client = discord.Client(intents=intents)
+
+# parse privileged roles
+privileged_roles = parse_privileged_roles()
 
 
-def get_max_token_ratio(nick):
-    """
-    Calculate max token ratio between nickname and roles
-    :param nick: Member nickname
-    :return: Max token ratio
-    """
-    return max([get_token_ratio(nick.lower(), role.lower()) for role in get_privileged_roles()])
-
-
-def is_privileged_nick(nick):
-    """
-    Check whether member nick match to one of privileged roles with token ratio
-    :param nick: Member nickname
-    :return: Returns True if the nickname match to privileged roles, False otherwise.
-    """
-    if get_max_token_ratio(nick) >= config.MATCH_TOKEN_RATIO:
-        return True
-    return False
-
-
-def check_nickname_change(before, after):
-    """
-    Checks if a member's nickname has been changed to a privileged user.
-    :param before: Member before
-    :param after: Member after
-    :return: Returns True if the nickname has been changed to privileged role, False otherwise.
-    """
-    if before.nick != after.nick:
-        if is_privileged_nick(after.nick):
-            return True
-    return False
-
-
-@bot.event
-async def on_ready():
-    print(f"Logged in as {bot.user}")
-
-
-@bot.event
-async def on_member_update(before, after):
-    if check_nickname_change(before, after):
-        await after.kick(reason=config.MEMBER_UPDATE_KICK_REASON)
-
-
-@bot.event
+@client.event
 async def on_member_join(member):
-    if is_privileged_nick(member.nick):
-        await member.kick(reason=config.MEMBER_JOIN_KICK_REASON)
+    logger.info("MEMBER JOIN EVENT")
+    await check_for_duplicate(member)
 
 
-bot.run(config.DISCORD_TOKEN)
+@client.event
+async def on_member_update(before, after):
+    logger.info("MEMBER UPDATE EVENT")
+    if before.display_name != after.display_name or before.nick != after.nick or before.name != after.name:
+        await check_for_duplicate(after)
+
+
+async def check_for_duplicate(member):
+
+    logger.info(f"Privileged roles: {privileged_roles}")
+
+    members = [m for m in member.guild.members if any(role.name in privileged_roles for role in m.roles)]
+    # logger.info(f"Privileged members: {members}")
+
+    logger.info(f"Verify member with ID={member.id}")
+    logger.info(f"\t\tdisplay_name={member.display_name}")
+    logger.info(f"\t\tname={member.name}")
+    logger.info(f"\t\tnick={member.nick}")
+
+    for m in members:
+
+        if m == member:
+            continue
+
+        if m.display_name == member.display_name:
+            logger.info(f"Kicking member {member.display_name} "
+                        f"due to reason: {config.MEMBER_DISPLAY_NAME_DUPLICATE_REASON}")
+            await member.kick(reason=config.MEMBER_DISPLAY_NAME_DUPLICATE_REASON)
+        elif member.name and member.name == m.name:
+            logger.info(f"Kicking member {member.display_name} "
+                        f"due to reason: {config.MEMBER_NAME_DUPLICATE_REASON}")
+            await member.kick(reason=config.MEMBER_NAME_DUPLICATE_REASON)
+        elif member.nick and member.nick == m.nick:
+            logger.info(f"Kicking member {member.display_name} "
+                        f"due to reason: {config.MEMBER_NICK_DUPLICATE_REASON}")
+            await member.kick(reason=config.MEMBER_NICK_DUPLICATE_REASON)
+
+
+client.run(config.DISCORD_TOKEN)
