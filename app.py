@@ -22,18 +22,32 @@ privileged_roles = parse_privileged_roles()
 
 @client.event
 async def on_member_join(member):
+    """
+    Member join event
+    :param member: Member try to join
+    """
     logger.info("MEMBER JOIN EVENT")
     await check_for_duplicate(member)
 
 
 @client.event
 async def on_member_update(before, after):
+    """
+    Member update event
+    :param before: Member before update
+    :param after: Member after update
+    """
+
     logger.info("MEMBER UPDATE EVENT")
     if before.display_name != after.display_name or before.nick != after.nick or before.name != after.name:
         await check_for_duplicate(after)
 
 
 async def check_for_duplicate(member):
+    """
+    Check Member `nick`, `name`, `display_name` for the duplication with existing privileged members
+    :param member: Join member
+    """
 
     logger.info(f"Privileged roles: {privileged_roles}")
 
