@@ -1,6 +1,7 @@
 import discord
 import config
 from logger import logger
+from utils import get_token_ratio
 
 
 def parse_privileged_roles():
@@ -64,15 +65,15 @@ async def check_for_duplicate(member):
         if m == member:
             continue
 
-        if m.display_name == member.display_name:
+        if member.display_name and get_token_ratio(member.display_name, m.display_name) >= config.MATCH_TOKEN_RATIO:
             logger.info(f"Kicking member {member.display_name} "
                         f"due to reason: {config.MEMBER_DISPLAY_NAME_DUPLICATE_REASON}")
             await member.kick(reason=config.MEMBER_DISPLAY_NAME_DUPLICATE_REASON)
-        elif member.name and member.name == m.name:
+        elif member.name and get_token_ratio(member.name, m.name) >= config.MATCH_TOKEN_RATIO:
             logger.info(f"Kicking member {member.display_name} "
                         f"due to reason: {config.MEMBER_NAME_DUPLICATE_REASON}")
             await member.kick(reason=config.MEMBER_NAME_DUPLICATE_REASON)
-        elif member.nick and member.nick == m.nick:
+        elif member.nick and get_token_ratio(member.nick, m.nick) >= config.MATCH_TOKEN_RATIO:
             logger.info(f"Kicking member {member.display_name} "
                         f"due to reason: {config.MEMBER_NICK_DUPLICATE_REASON}")
             await member.kick(reason=config.MEMBER_NICK_DUPLICATE_REASON)
