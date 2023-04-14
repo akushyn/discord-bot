@@ -123,7 +123,7 @@ async def check_members():
 
 
 # Set up the background task to run check_for_duplicates once a day
-from discord.ext import tasks
+from discord.ext import tasks  # noqa
 
 
 @tasks.loop(seconds=config.MEMBER_CHECK_PERIOD)  # set loop to run once a day
