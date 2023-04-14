@@ -16,3 +16,4 @@ MATCH_TOKEN_RATIO = 100
 
 # discord server ID
 DISCORD_SERVER_ID = os.getenv('DISCORD_SERVER_ID')
+SQLALCHEMY_DATABASE_URI = "sqlite:///discord.db"
