@@ -25,7 +25,13 @@ async def load_all_members():
             db_member.name = member.display_name
             db_member.last_seen = datetime.datetime.now()
         else:
-            new_member = Member(member.id, member.display_name, datetime.datetime.now())
+            new_member = Member(
+                id=member.id,
+                name=member.name,
+                display_name=member.display_name,
+                nick=member.nick,
+                updated_at=datetime.datetime.now()
+            )
             session.add(new_member)
         session.commit()
 

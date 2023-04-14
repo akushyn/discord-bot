@@ -20,11 +20,6 @@ class Member(Base):
     nick = Column(String)
     updated_at = Column(DateTime)
 
-    def __init__(self, id, name, last_seen):
-        self.id = id
-        self.name = name
-        self.last_seen = last_seen
-
 
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
