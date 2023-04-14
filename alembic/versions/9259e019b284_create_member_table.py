@@ -1,7 +1,7 @@
 """Create member table
 
 Revision ID: 9259e019b284
-Revises: 
+Revises:
 Create Date: 2023-04-14 20:38:43.522541
 
 """
@@ -30,4 +30,3 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_table('member')
-
