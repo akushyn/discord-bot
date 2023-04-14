@@ -1,16 +1,10 @@
+import datetime
+
 import discord
 import config
 from logger import logger
-from utils import get_token_ratio
-
-
-def parse_privileged_roles():
-    """
-    Get parsed privileged roles
-    :return: List of privileged roles
-    """
-    return [u.strip() for u in config.PRIVILEGED_USER_ROLES.split(',')]
-
+from models import session, Member
+from utils import get_token_ratio, parse_privileged_roles
 
 intents = discord.Intents.default()
 intents.members = True
@@ -21,27 +15,47 @@ client = discord.Client(intents=intents)
 privileged_roles = parse_privileged_roles()
 
 
-@client.event
-async def on_member_join(member):
+async def load_all_members():
     """
-    Member join event
-    :param member: Member try to join
+    Load all server member into database
     """
-    logger.info("MEMBER JOIN EVENT")
-    await check_for_duplicate(member)
+    for member in client.get_all_members():
+        db_member = session.query(Member).filter(Member.id == member.id).first()
+        if db_member:
+            db_member.name = member.display_name
+            db_member.last_seen = datetime.datetime.now()
+        else:
+            new_member = Member(member.id, member.display_name, datetime.datetime.now())
+            session.add(new_member)
+        session.commit()
 
 
-@client.event
-async def on_member_update(before, after):
+async def update_member(member):
     """
-    Member update event
-    :param before: Member before update
-    :param after: Member after update
+    Update member details
+    :param member: Member
     """
+    # find member in our database
+    db_member = session.query(Member).filter(Member.id == member.id).first()
 
-    logger.info("MEMBER UPDATE EVENT")
-    if before.display_name != after.display_name or before.nick != after.nick or before.name != after.name:
-        await check_for_duplicate(after)
+    # member exists, update details
+    if db_member:
+        db_member.name = member.name
+        db_member.display_name = member.display_name
+        db_member.nick = member.nick
+        db_member.updated_at = datetime.datetime.now()
+    else:
+        # create new member
+        new_member = Member(
+            id=member.id,
+            name=member.name,
+            display_name=member.display_name,
+            created_at=datetime.datetime.now()
+        )
+        session.add(new_member)
+
+    # persist session changes
+    session.commit()
 
 
 async def check_for_duplicate(member):
@@ -77,6 +91,35 @@ async def check_for_duplicate(member):
             logger.info(f"Kicking member {member.display_name} "
                         f"due to reason: {config.MEMBER_NICK_DUPLICATE_REASON}")
             await member.kick(reason=config.MEMBER_NICK_DUPLICATE_REASON)
+
+
+@client.event
+async def on_ready():
+    await load_all_members()
+    print('Bot is ready.')
+
+
+@client.event
+async def on_member_join(member):
+    """
+    Member join event
+    :param member: Member try to join
+    """
+    logger.info("MEMBER JOIN EVENT")
+    await update_member(member=member)
+
+
+@client.event
+async def on_member_update(before, after):
+    """
+    Member update event
+    :param before: Member before update
+    :param after: Member after update
+    """
+
+    logger.info("MEMBER UPDATE EVENT")
+    if before.display_name != after.display_name or before.nick != after.nick or before.name != after.name:
+        await update_member(member=after)
 
 
 client.run(config.DISCORD_TOKEN)
