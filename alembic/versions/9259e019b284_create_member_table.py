@@ -5,6 +5,8 @@ Revises:
 Create Date: 2023-04-14 20:38:43.522541
 
 """
+import datetime
+
 from alembic import op
 import sqlalchemy as sa
 
@@ -23,7 +25,8 @@ def upgrade() -> None:
         sa.Column('name', sa.String(), nullable=True),
         sa.Column('display_name', sa.String(), nullable=True),
         sa.Column('nick', sa.Integer(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=True),
+        sa.Column('updated_at', sa.DateTime(), nullable=True),
+        sa.Column('created_at', sa.DateTime(), server_default=str(datetime.datetime.now())),
         sa.PrimaryKeyConstraint('id')
     )
 

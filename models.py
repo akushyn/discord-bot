@@ -1,3 +1,5 @@
+import datetime
+
 from sqlalchemy import create_engine, Column, Integer, String, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -18,6 +20,7 @@ class Member(Base):
     name = Column(String)
     display_name = Column(String)
     nick = Column(String)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime)
 
 

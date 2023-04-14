@@ -22,15 +22,16 @@ async def load_all_members():
     for member in client.get_all_members():
         db_member = session.query(Member).filter(Member.id == member.id).first()
         if db_member:
-            db_member.name = member.display_name
-            db_member.last_seen = datetime.datetime.now()
+            db_member.name = member.name
+            db_member.display_name = member.display_name
+            db_member.nick = member.nick
+            db_member.updated_at = datetime.datetime.now()
         else:
             new_member = Member(
                 id=member.id,
                 name=member.name,
                 display_name=member.display_name,
                 nick=member.nick,
-                updated_at=datetime.datetime.now()
             )
             session.add(new_member)
         session.commit()
@@ -56,7 +57,7 @@ async def update_member(member):
             id=member.id,
             name=member.name,
             display_name=member.display_name,
-            created_at=datetime.datetime.now()
+            nick=member.nick
         )
         session.add(new_member)
 
