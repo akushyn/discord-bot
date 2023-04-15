@@ -1,9 +1,6 @@
-import datetime
-
 import discord
 import config
 from logger import logger
-from models import session, Member, Session
 from utils import get_token_ratio, parse_privileged_roles
 
 intents = discord.Intents.default()
@@ -13,60 +10,15 @@ client = discord.Client(intents=intents)
 
 # parse privileged roles
 privileged_roles = parse_privileged_roles()
+privileged_members = []
 
 
-async def load_all_members():
+async def get_privileged_members():
     """
-    Load all server member into database
+    Get privileged members, i.e members with one of privileged roles
+    :return:
     """
-    for member in client.get_all_members():
-        db_member = session.query(Member).filter(Member.id == member.id).first()
-        if db_member:
-            db_member.name = member.name
-            db_member.display_name = member.display_name
-            db_member.nick = member.nick
-            db_member.updated_at = datetime.datetime.now()
-        else:
-            new_member = Member(
-                id=member.id,
-                name=member.name,
-                display_name=member.display_name,
-                nick=member.nick,
-                created_at=datetime.datetime.now(),
-                updated_at=datetime.datetime.now()
-            )
-            session.add(new_member)
-        session.commit()
-
-
-async def update_member(member):
-    """
-    Update member details
-    :param member: Member
-    """
-    # find member in our database
-    db_member = session.query(Member).filter(Member.id == member.id).first()
-
-    # member exists, update details
-    if db_member:
-        db_member.name = member.name
-        db_member.display_name = member.display_name
-        db_member.nick = member.nick
-        db_member.updated_at = datetime.datetime.now()
-    else:
-        # create new member
-        new_member = Member(
-            id=member.id,
-            name=member.name,
-            display_name=member.display_name,
-            nick=member.nick,
-            created_at=datetime.datetime.now(),
-            updated_at=datetime.datetime.now()
-        )
-        session.add(new_member)
-
-    # persist session changes
-    session.commit()
+    return [m for m in client.get_all_members() if any(role.name in privileged_roles for role in m.roles)]
 
 
 async def check_for_duplicate(member):
@@ -77,7 +29,7 @@ async def check_for_duplicate(member):
 
     logger.info(f"Privileged roles: {privileged_roles}")
 
-    members = [m for m in member.guild.members if any(role.name in privileged_roles for role in m.roles)]
+    members = [m for m in privileged_members if any(role.name in privileged_roles for role in m.roles)]
     # logger.info(f"Privileged members: {members}")
 
     logger.info(f"Verify member with ID={member.id}")
@@ -104,40 +56,21 @@ async def check_for_duplicate(member):
             await member.kick(reason=config.MEMBER_NICK_DUPLICATE_REASON)
 
 
-async def check_members():
-    """
-    Periodically check members that did nick or name or display_name changes or joined
-    """
-    sess = Session()
-    cutoff_time = datetime.datetime.now() - datetime.timedelta(seconds=config.MEMBER_CHECK_PERIOD)
-
-    updated_members = sess.query(Member).filter(Member.updated_at < cutoff_time).all()
-    for db_member in updated_members:
-        member = await client.fetch_user(db_member.id)
-        if member:
-            await check_for_duplicate(member)
-        else:
-            sess.delete(db_member)
-    sess.commit()
-    sess.close()
-
-
 # Set up the background task to run check_for_duplicates once a day
 from discord.ext import tasks  # noqa
 
 
 @tasks.loop(seconds=config.MEMBER_CHECK_PERIOD)  # set loop to run once a day
-async def daily_check_members():
-    await check_members()
+async def daily_update_privileged_members():
+    global privileged_members
+    privileged_members = await get_privileged_members()
+    print(privileged_members)
 
 
 @client.event
 async def on_ready():
-    await load_all_members()
-
-    # start periodic task
-    daily_check_members.start()
-
+    # start periodic task to update privileged members
+    daily_update_privileged_members.start()
     print('Bot is ready.')
 
 
@@ -148,7 +81,7 @@ async def on_member_join(member):
     :param member: Member try to join
     """
     logger.info("MEMBER JOIN EVENT")
-    await update_member(member=member)
+    await check_for_duplicate(member=member)
 
 
 @client.event
@@ -161,6 +94,6 @@ async def on_member_update(before, after):
 
     logger.info("MEMBER UPDATE EVENT")
     if before.display_name != after.display_name or before.nick != after.nick or before.name != after.name:
-        await update_member(member=after)
+        await check_for_duplicate(member=after)
 
 client.run(config.DISCORD_TOKEN)
