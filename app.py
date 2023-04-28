@@ -45,11 +45,10 @@ async def on_ready():
     global log_channel
     log_channel = client.get_channel(config.DISCORD_CHANNEL_ID)  # Get the channel object using its ID
 
-    await log_message(f'Manage privileged roles: {privileged_roles}', channel=log_channel)
-
     # start periodic task to update privileged members
     daily_update_privileged_members.start()
     await log_message('Bot is ready.', channel=log_channel)
+    await log_message(f'Manage privileged roles: {privileged_roles}', channel=log_channel)
 
 
 @client.event
