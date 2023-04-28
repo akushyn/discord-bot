@@ -74,20 +74,12 @@ async def get_duplicate_reason(member, privileged_members, logger=None):
     reason = None
     for m in privileged_members:
         if member.display_name and get_token_ratio(member.display_name, m.display_name) >= config.MATCH_TOKEN_RATIO:
-            # reason = f"Kicking member due to reason: {config.MEMBER_DISPLAY_NAME_DUPLICATE_REASON}"
-            # await member.kick(reason=config.MEMBER_DISPLAY_NAME_DUPLICATE_REASON)
             reason = config.MEMBER_DISPLAY_NAME_DUPLICATE_REASON
             break
         elif member.name and get_token_ratio(member.name, m.name) >= config.MATCH_TOKEN_RATIO:
-            # logger.info(f"Kicking member {member.display_name} "
-            #             f"due to reason: {config.MEMBER_NAME_DUPLICATE_REASON}")
-            # await member.kick(reason=config.MEMBER_NAME_DUPLICATE_REASON)
             reason = config.MEMBER_NAME_DUPLICATE_REASON
             break
         elif member.nick and get_token_ratio(member.nick, m.nick) >= config.MATCH_TOKEN_RATIO:
-            # logger.info(f"Kicking member {member.display_name} "
-            #             f"due to reason: {config.MEMBER_NICK_DUPLICATE_REASON}")
-            # await member.kick(reason=config.MEMBER_NICK_DUPLICATE_REASON)
             reason = config.MEMBER_NICK_DUPLICATE_REASON
             break
 
