@@ -17,5 +17,5 @@ MEMBER_CHECK_PERIOD = 60*1*1
 MATCH_TOKEN_RATIO = 100
 
 # discord server ID
-DISCORD_SERVER_ID = int(os.getenv('DISCORD_SERVER_ID'))
-DISCORD_CHANNEL_ID = int(os.getenv('DISCORD_CHANNEL_ID'))
+DISCORD_SERVER_ID = int(os.getenv('DISCORD_SERVER_ID')) if os.getenv('DISCORD_SERVER_ID') else None
+DISCORD_CHANNEL_ID = int(os.getenv('DISCORD_CHANNEL_ID')) if os.getenv('DISCORD_CHANNEL_ID') else None
