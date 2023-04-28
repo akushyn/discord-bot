@@ -25,12 +25,20 @@ async def daily_update_privileged_members():
     global privileged_members
 
     server = get_discord_server(client, server_id=config.DISCORD_SERVER_ID)
-    privileged_members = await get_privileged_members(server, roles=privileged_roles)
-    await log_message(
-        message=f"Updated privileged members: {[m.display_name for m in privileged_members]}",
-        logger=logger,
-        channel=log_channel
-    )
+    updated_privileged_members = await get_privileged_members(server, roles=privileged_roles)
+
+    # there are changes to privileged members list
+    if set(privileged_members) != set(updated_privileged_members):
+
+        # update privileged members list
+        privileged_members = updated_privileged_members
+
+        # log changes to channel
+        await log_message(
+            message=f"Updated privileged members: {[m.display_name for m in privileged_members]}",
+            logger=logger,
+            channel=log_channel
+        )
 
 
 @client.event
