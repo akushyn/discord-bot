@@ -29,16 +29,12 @@ async def daily_update_privileged_members():
 
     # there are changes to privileged members list
     if set(privileged_members) != set(updated_privileged_members):
-
         # update privileged members list
         privileged_members = updated_privileged_members
 
         # log changes to channel
-        await log_message(
-            message=f"Updated privileged members: {[m.display_name for m in privileged_members]}",
-            logger=logger,
-            channel=log_channel
-        )
+        member_names = [m.display_name for m in privileged_members]
+        await log_message(f"Updated privileged members: {member_names}", channel=log_channel)
 
 
 @client.event
@@ -49,25 +45,11 @@ async def on_ready():
     global log_channel
     log_channel = client.get_channel(config.DISCORD_CHANNEL_ID)  # Get the channel object using its ID
 
-    await log_message(
-        message='Bot is online!',
-        logger=logger,
-        channel=log_channel
-    )
-
-    await log_message(
-        message=f'Manage privileged roles: {privileged_roles}',
-        logger=logger,
-        channel=log_channel
-    )
+    await log_message(f'Manage privileged roles: {privileged_roles}', channel=log_channel)
 
     # start periodic task to update privileged members
     daily_update_privileged_members.start()
-    await log_message(
-        message='Bot is ready.',
-        logger=logger,
-        channel=log_channel
-    )
+    await log_message('Bot is ready.', channel=log_channel)
 
 
 @client.event
@@ -77,12 +59,7 @@ async def on_member_join(member):
     :param member: Member try to join
     """
     logger.info("MEMBER JOIN EVENT")
-    await kick_duplicate(
-        member=member,
-        privileged_members=privileged_members,
-        logger=logger,
-        log_channel=log_channel
-    )
+    await kick_duplicate(member=member, privileged_members=privileged_members, channel=log_channel)
 
 
 @client.event
@@ -95,11 +72,7 @@ async def on_member_update(before, after):
 
     logger.info("MEMBER UPDATE EVENT")
     if before.display_name != after.display_name or before.nick != after.nick or before.name != after.name:
-        await kick_duplicate(
-            member=after,
-            privileged_members=privileged_members,
-            logger=logger,
-            log_channel=log_channel
-        )
+        await kick_duplicate(member=after, privileged_members=privileged_members, channel=log_channel)
+
 
 client.run(config.DISCORD_TOKEN)

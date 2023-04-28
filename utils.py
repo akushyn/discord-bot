@@ -1,6 +1,7 @@
 from fuzzywuzzy import fuzz
 
 import config
+from logger import logger
 
 
 def get_token_ratio(s1, s2):
@@ -93,13 +94,12 @@ async def get_duplicate_reason(member, privileged_members, logger=None):
     return reason
 
 
-async def kick_duplicate(member, privileged_members, logger=None, log_channel=None):
+async def kick_duplicate(member, privileged_members, channel=None):
     """
     Kick member. Log reason to discord channel
     :param member:
     :param privileged_members:
-    :param logger:
-    :param log_channel:
+    :param channel:
     :return:
     """
     reason = await get_duplicate_reason(member, privileged_members, logger)
@@ -109,14 +109,12 @@ async def kick_duplicate(member, privileged_members, logger=None, log_channel=No
 
         await log_message(
             message=f"Kicking member due to reason: {reason}",
-            logger=logger,
-            channel=log_channel
+            channel=channel
         )
 
 
-async def log_message(message, logger=None, channel=None):
-    if logger:
-        logger.info(message)
+async def log_message(message, channel=None):
+    logger.info(message)
 
     if channel:
         await channel.send(message)
