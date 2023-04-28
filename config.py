@@ -12,10 +12,10 @@ MEMBER_NAME_DUPLICATE_REASON = "Member used 'name' of a privileged user"
 MEMBER_DISPLAY_NAME_DUPLICATE_REASON = "Member used 'display_name' of a privileged user"
 
 # duration in seconds to check members
-# MEMBER_CHECK_PERIOD = 60*60*24
 MEMBER_CHECK_PERIOD = 60*1*1
 # how many % changed nickname should match with roles
 MATCH_TOKEN_RATIO = 100
 
 # discord server ID
-DISCORD_SERVER_ID = os.getenv('DISCORD_SERVER_ID')
+DISCORD_SERVER_ID = int(os.getenv('DISCORD_SERVER_ID'))
+DISCORD_CHANNEL_ID = int(os.getenv('DISCORD_CHANNEL_ID'))

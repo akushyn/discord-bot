@@ -1,7 +1,7 @@
 import discord
 import config
 from logger import logger
-from utils import get_token_ratio, parse_privileged_roles
+from utils import parse_privileged_roles, get_privileged_members, get_discord_server, kick_duplicate, log_message
 
 intents = discord.Intents.default()
 intents.members = True
@@ -11,67 +11,55 @@ client = discord.Client(intents=intents)
 # parse privileged roles
 privileged_roles = parse_privileged_roles()
 privileged_members = []
-
-
-async def get_privileged_members():
-    """
-    Get privileged members, i.e members with one of privileged roles
-    :return:
-    """
-    return [m for m in client.get_all_members() if any(role.name in privileged_roles for role in m.roles)]
-
-
-async def check_for_duplicate(member):
-    """
-    Check Member `nick`, `name`, `display_name` for the duplication with existing privileged members
-    :param member: Join member
-    """
-
-    logger.info(f"Privileged roles: {privileged_roles}")
-
-    members = [m for m in privileged_members if any(role.name in privileged_roles for role in m.roles)]
-    # logger.info(f"Privileged members: {members}")
-
-    logger.info(f"Verify member with ID={member.id}")
-    logger.info(f"\t\tdisplay_name={member.display_name}")
-    logger.info(f"\t\tname={member.name}")
-    logger.info(f"\t\tnick={member.nick}")
-
-    for m in members:
-
-        if m == member:
-            continue
-
-        if member.display_name and get_token_ratio(member.display_name, m.display_name) >= config.MATCH_TOKEN_RATIO:
-            logger.info(f"Kicking member {member.display_name} "
-                        f"due to reason: {config.MEMBER_DISPLAY_NAME_DUPLICATE_REASON}")
-            await member.kick(reason=config.MEMBER_DISPLAY_NAME_DUPLICATE_REASON)
-        elif member.name and get_token_ratio(member.name, m.name) >= config.MATCH_TOKEN_RATIO:
-            logger.info(f"Kicking member {member.display_name} "
-                        f"due to reason: {config.MEMBER_NAME_DUPLICATE_REASON}")
-            await member.kick(reason=config.MEMBER_NAME_DUPLICATE_REASON)
-        elif member.nick and get_token_ratio(member.nick, m.nick) >= config.MATCH_TOKEN_RATIO:
-            logger.info(f"Kicking member {member.display_name} "
-                        f"due to reason: {config.MEMBER_NICK_DUPLICATE_REASON}")
-            await member.kick(reason=config.MEMBER_NICK_DUPLICATE_REASON)
-
+log_channel = None
 
 # Set up the background task to run check_for_duplicates once a day
 from discord.ext import tasks  # noqa
 
 
-@tasks.loop(seconds=config.MEMBER_CHECK_PERIOD)  # set loop to run once a day
+@tasks.loop(seconds=config.MEMBER_CHECK_PERIOD)
 async def daily_update_privileged_members():
+    """
+    Periodic task to update list of privileged members
+    """
     global privileged_members
-    privileged_members = await get_privileged_members()
-    print(privileged_members)
+
+    server = get_discord_server(client, server_id=config.DISCORD_SERVER_ID)
+    privileged_members = await get_privileged_members(server, roles=privileged_roles)
+    await log_message(
+        message=f"Updated privileged members: {[m.display_name for m in privileged_members]}",
+        logger=logger,
+        channel=log_channel
+    )
 
 
 @client.event
 async def on_ready():
+    """
+    Bot initialization event
+    """
+    global log_channel
+    log_channel = client.get_channel(config.DISCORD_CHANNEL_ID)  # Get the channel object using its ID
+
+    await log_message(
+        message='Bot is online!',
+        logger=logger,
+        channel=log_channel
+    )
+
+    await log_message(
+        message=f'Manage privileged roles: {privileged_roles}',
+        logger=logger,
+        channel=log_channel
+    )
+
     # start periodic task to update privileged members
     daily_update_privileged_members.start()
-    print('Bot is ready.')
+    await log_message(
+        message='Bot is ready.',
+        logger=logger,
+        channel=log_channel
+    )
 
 
 @client.event
@@ -81,7 +69,12 @@ async def on_member_join(member):
     :param member: Member try to join
     """
     logger.info("MEMBER JOIN EVENT")
-    await check_for_duplicate(member=member)
+    await kick_duplicate(
+        member=member,
+        privileged_members=privileged_members,
+        logger=logger,
+        log_channel=log_channel
+    )
 
 
 @client.event
@@ -94,6 +87,11 @@ async def on_member_update(before, after):
 
     logger.info("MEMBER UPDATE EVENT")
     if before.display_name != after.display_name or before.nick != after.nick or before.name != after.name:
-        await check_for_duplicate(member=after)
+        await kick_duplicate(
+            member=after,
+            privileged_members=privileged_members,
+            logger=logger,
+            log_channel=log_channel
+        )
 
 client.run(config.DISCORD_TOKEN)
